@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slim4 Quarterly Health Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #0d0f14;
+  --surface:      #13161d;
+  --surface2:     #1a1e28;
+  --surface3:     #222638;
+  --border:       #2a2f42;
+  --border2:      #353c55;
+  --text:         #e8eaf2;
+  --text-sub:     #8b90a8;
+  --text-muted:   #545870;
+
+  --green:        #22c55e;
+  --green-dim:    rgba(34,197,94,0.12);
+  --green-glow:   rgba(34,197,94,0.25);
+  --yellow:       #f59e0b;
+  --yellow-dim:   rgba(245,158,11,0.12);
+  --red:          #ef4444;
+  --red-dim:      rgba(239,68,68,0.12);
+  --red-glow:     rgba(239,68,68,0.3);
+  --blue:         #60a5fa;
+  --blue-dim:     rgba(96,165,250,0.1);
+  --purple:       #a78bfa;
+
+  --radius:       12px;
+  --radius-sm:    8px;
+  --radius-xs:    5px;
+}
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-brand { display: flex; align-items: center; gap: 14px; }
+.logo {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo svg { width: 16px; height: 16px; fill: white; }
+.brand-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+}
+.brand-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; letter-spacing: 0.05em; }
+
+.header-meta { display: flex; align-items: center; gap: 16px; }
+.quarter-select {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border2); border-radius: var(--radius-xs);
+  padding: 6px 10px; cursor: pointer; outline: none;
+}
+.demo-pill {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  background: rgba(245,158,11,0.15); color: var(--yellow);
+  border: 1px solid rgba(245,158,11,0.3);
+  padding: 3px 10px; border-radius: 20px;
+}
+.last-run { font-size: 10px; color: var(--text-muted); }
+
+/* ── MAIN ── */
+.main { padding: 28px 32px; }
+
+/* ── SECTION HEADERS ── */
+.section-header {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 18px;
+}
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-sub);
+}
+.section-line { flex: 1; height: 1px; background: var(--border); }
+.section-count { font-size: 10px; color: var(--text-muted); }
+
+/* ── SUMMARY STRIP ── */
+.summary-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 32px;
+}
+.strip-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+.strip-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.strip-card.s-healthy::after  { background: var(--green); }
+.strip-card.s-watch::after   { background: var(--yellow); }
+.strip-card.s-atrisk::after  { background: var(--red); box-shadow: 0 0 12px var(--red-glow); }
+.strip-card.s-total::after   { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+
+.strip-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 34px; font-weight: 800; letter-spacing: -0.04em; line-height: 1;
+  margin-bottom: 4px;
+}
+.strip-card.s-healthy .strip-num { color: var(--green); }
+.strip-card.s-watch .strip-num   { color: var(--yellow); }
+.strip-card.s-atrisk .strip-num  { color: var(--red); }
+.strip-card.s-total .strip-num   { color: var(--text); }
+.strip-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.strip-sub { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+
+/* ── ENV CARDS GRID ── */
+.env-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 40px;
+}
+
+.env-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: cardIn 0.4s ease both;
+  cursor: default;
+}
+.env-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.env-card.risk-healthy { border-color: rgba(34,197,94,0.25); }
+.env-card.risk-watch   { border-color: rgba(245,158,11,0.25); }
+.env-card.risk-atrisk  {
+  border-color: rgba(239,68,68,0.35);
+  box-shadow: 0 0 0 1px rgba(239,68,68,0.1), inset 0 0 40px rgba(239,68,68,0.03);
+}
+
+/* card top bar */
+.card-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 0;
+}
+.card-env-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px; font-weight: 700; letter-spacing: -0.01em;
+}
+.risk-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px;
+}
+.risk-badge .bdot { width: 5px; height: 5px; border-radius: 50%; }
+.risk-badge.healthy { background: var(--green-dim); color: var(--green); }
+.risk-badge.healthy .bdot { background: var(--green); }
+.risk-badge.watch   { background: var(--yellow-dim); color: var(--yellow); }
+.risk-badge.watch .bdot   { background: var(--yellow); }
+.risk-badge.atrisk  { background: var(--red-dim); color: var(--red); animation: pulse-badge 2s ease-in-out infinite; }
+.risk-badge.atrisk .bdot  { background: var(--red); }
+@keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* card region */
+.card-region { font-size: 9px; color: var(--text-muted); padding: 3px 16px 10px; letter-spacing: 0.06em; }
+
+/* KPI row */
+.card-kpis {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--border);
+  margin: 0 16px; border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.kpi-cell {
+  background: var(--surface2);
+  padding: 10px 12px;
+}
+.kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+.kpi-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;
+}
+.kpi-val.good  { color: var(--green); }
+.kpi-val.warn  { color: var(--yellow); }
+.kpi-val.bad   { color: var(--red); }
+.kpi-val.neutral { color: var(--text); }
+.kpi-delta {
+  font-size: 10px; margin-top: 3px;
+  display: flex; align-items: center; gap: 3px;
+}
+.kpi-delta.up   { color: var(--green); }
+.kpi-delta.down { color: var(--red); }
+.kpi-delta.flat { color: var(--text-muted); }
+
+/* user activity bar */
+.card-users {
+  padding: 12px 16px 14px;
+}
+.user-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.user-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; }
+.user-count { font-size: 10px; color: var(--text-sub); }
+.user-bar-track {
+  height: 6px; background: var(--surface3);
+  border-radius: 3px; overflow: hidden; margin-bottom: 6px;
+}
+.user-bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+.fill-good   { background: linear-gradient(90deg, var(--green), #4ade80); }
+.fill-warn   { background: linear-gradient(90deg, var(--yellow), #fbbf24); }
+.fill-bad    { background: linear-gradient(90deg, var(--red), #f87171); }
+
+.user-detail {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--text-muted);
+}
+
+/* flag row */
+.card-flags {
+  padding: 0 16px 14px;
+  display: flex; gap: 5px; flex-wrap: wrap;
+}
+.flag-chip {
+  font-size: 9px; padding: 2px 8px; border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+.flag-chip.warn  { background: var(--yellow-dim); color: var(--yellow); }
+.flag-chip.crit  { background: var(--red-dim); color: var(--red); }
+.flag-chip.info  { background: var(--blue-dim); color: var(--blue); }
+
+/* ── QoQ COMPARISON TABLE ── */
+.qoq-section { margin-top: 8px; }
+.qoq-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--surface2); }
+th {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); padding: 12px 16px; text-align: left;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+th.num { text-align: right; }
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+td {
+  padding: 11px 16px; font-size: 11px; color: var(--text-sub);
+  vertical-align: middle;
+}
+td.env-name-cell {
+  font-family: 'Syne', sans-serif;
+  font-size: 12px; font-weight: 600; color: var(--text);
+}
+td.num { text-align: right; }
+
+.tbl-val { font-size: 12px; color: var(--text); }
+.tbl-delta {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 10px; margin-left: 6px;
+}
+.tbl-delta.up   { color: var(--green); }
+.tbl-delta.down { color: var(--red); }
+.tbl-delta.flat { color: var(--text-muted); }
+
+.tbl-risk { display: inline-flex; align-items: center; gap: 5px; }
+.tbl-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.tbl-dot.green  { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+.tbl-dot.yellow { background: var(--yellow); }
+.tbl-dot.red    { background: var(--red); box-shadow: 0 0 6px var(--red-glow); }
+
+.tbl-user-mini { display: flex; align-items: center; gap: 8px; }
+.mini-bar { width: 60px; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.mini-fill { height: 100%; border-radius: 2px; }
+
+/* ── ATTN BANNER ── */
+.attn-banner {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.attn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.attn-body {}
+.attn-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--red); margin-bottom: 3px; }
+.attn-desc { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+.attn-envs { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.attn-env-tag {
+  font-size: 10px; padding: 2px 10px; border-radius: 4px;
+  background: var(--red-dim); color: var(--red);
+  border: 1px solid rgba(239,68,68,0.2);
+}
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.filt-btn {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.04em;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
+}
+.filt-btn:hover { background: var(--surface2); }
+.filt-btn.active { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+.filt-btn.active.f-healthy { border-color: var(--green); color: var(--green); }
+.filt-btn.active.f-watch   { border-color: var(--yellow); color: var(--yellow); }
+.filt-btn.active.f-atrisk  { border-color: var(--red); color: var(--red); }
+.filt-spacer { flex: 1; }
+.search-env {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border2); border-radius: 20px;
+  padding: 5px 14px; outline: none; width: 180px;
+  transition: border-color 0.15s;
+}
+.search-env:focus { border-color: var(--blue); }
+.search-env::placeholder { color: var(--text-muted); }
+
+/* scroll */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm14 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">Slim4 Health Dashboard</div>
+      <div class="brand-sub">Quarterly Environment Review</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <select class="quarter-select" onchange="setQuarter(this.value)">
+      <option value="Q1 2026">Q1 2026 (current)</option>
+      <option value="Q4 2025">Q4 2025</option>
+      <option value="Q3 2025">Q3 2025</option>
+    </select>
+    <span class="last-run" id="last-run">Snapshot: —</span>
+    <span class="demo-pill">Demo Mode</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- summary strip -->
+  <div class="summary-strip" id="summary-strip"></div>
+
+  <!-- attention banner -->
+  <div class="attn-banner" id="attn-banner" style="display:none">
+    <div class="attn-icon">⚠</div>
+    <div class="attn-body">
+      <div class="attn-title">Immediate Attention Required</div>
+      <div class="attn-desc">The following environments have critically low user activity combined with declining service levels. Recommend account manager outreach this week.</div>
+      <div class="attn-envs" id="attn-envs"></div>
+    </div>
+  </div>
+
+  <!-- filter + cards -->
+  <div class="section-header">
+    <span class="section-title">Environment Overview</span>
+    <span class="section-line"></span>
+    <span class="section-count" id="env-count-label"></span>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filt-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filt-btn f-healthy" onclick="setFilter('healthy',this)">Healthy</button>
+    <button class="filt-btn f-watch" onclick="setFilter('watch',this)">Watch</button>
+    <button class="filt-btn f-atrisk" onclick="setFilter('atrisk',this)">At Risk</button>
+    <span class="filt-spacer"></span>
+    <input class="search-env" type="text" placeholder="Search environment…" oninput="setSearch(this.value)">
+  </div>
+
+  <div class="env-grid" id="env-grid"></div>
+
+  <!-- QoQ table -->
+  <div class="qoq-section">
+    <div class="section-header">
+      <span class="section-title">Quarter-over-Quarter Comparison</span>
+      <span class="section-line"></span>
+      <span class="section-count">vs previous quarter</span>
+    </div>
+    <div class="qoq-table-wrap">
+      <table id="qoq-table">
+        <thead>
+          <tr>
+            <th>Environment</th>
+            <th>Region</th>
+            <th class="num">Service Level</th>
+            <th class="num">vs Q4 2025</th>
+            <th class="num">Active Users</th>
+            <th class="num">User Trend</th>
+            <th>Risk</th>
+            <th>Flags</th>
+          </tr>
+        </thead>
+        <tbody id="qoq-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+// serviceLevel: % (target ~94.6)
+// users: { active, total } — active = logged in at least once this quarter
+// prevServiceLevel: Q4 2025 value
+// prevActiveUsers: Q4 2025 active count
+// flags: short text chips shown on card
+
+const ENVIRONMENTS = [
+  {
+    id: 'bidfood-nz',
+    name: 'Bidfood NZ',
+    region: 'ANZ',
+    serviceLevel: 95.2,
+    prevServiceLevel: 94.1,
+    users: { active: 9, total: 10 },
+    prevActiveUsers: 8,
+    flags: []
+  },
+  {
+    id: 'bidfood-sg',
+    name: 'Bidfood SG',
+    region: 'APAC',
+    serviceLevel: 93.8,
+    prevServiceLevel: 94.6,
+    users: { active: 7, total: 12 },
+    prevActiveUsers: 9,
+    flags: ['SL declining', 'Users dropped']
+  },
+  {
+    id: 'aswatson-sg',
+    name: 'AS Watson SG',
+    region: 'APAC',
+    serviceLevel: 96.1,
+    prevServiceLevel: 95.8,
+    users: { active: 14, total: 15 },
+    prevActiveUsers: 13,
+    flags: []
+  },
+  {
+    id: 'garuda-id',
+    name: 'Garuda Food ID',
+    region: 'APAC',
+    serviceLevel: 81.4,
+    prevServiceLevel: 88.2,
+    users: { active: 2, total: 11 },
+    prevActiveUsers: 5,
+    flags: ['Low adoption', 'SL critical', 'Training needed']
+  },
+  {
+    id: 'carrefour-sa',
+    name: 'Carrefour SA',
+    region: 'MEA',
+    serviceLevel: 78.9,
+    prevServiceLevel: 82.1,
+    users: { active: 3, total: 10 },
+    prevActiveUsers: 4,
+    flags: ['Low adoption', 'SL critical']
+  },
+  {
+    id: 'lotte-kr',
+    name: 'Lotte Mart KR',
+    region: 'APAC',
+    serviceLevel: 94.9,
+    prevServiceLevel: 94.2,
+    users: { active: 11, total: 12 },
+    prevActiveUsers: 10,
+    flags: []
+  },
+  {
+    id: 'metro-de',
+    name: 'Metro AG DE',
+    region: 'EMEA',
+    serviceLevel: 92.3,
+    prevServiceLevel: 93.1,
+    users: { active: 8, total: 14 },
+    prevActiveUsers: 10,
+    flags: ['Users dropped']
+  },
+  {
+    id: 'woolworths-au',
+    name: 'Woolworths AU',
+    region: 'ANZ',
+    serviceLevel: 97.3,
+    prevServiceLevel: 96.8,
+    users: { active: 18, total: 18 },
+    prevActiveUsers: 17,
+    flags: []
+  },
+  {
+    id: 'picknpay-za',
+    name: "Pick n Pay ZA",
+    region: 'MEA',
+    serviceLevel: 90.1,
+    prevServiceLevel: 91.4,
+    users: { active: 6, total: 10 },
+    prevActiveUsers: 7,
+    flags: ['SL declining']
+  },
+  {
+    id: 'fairprice-sg',
+    name: 'NTUC Fairprice SG',
+    region: 'APAC',
+    serviceLevel: 95.7,
+    prevServiceLevel: 95.0,
+    users: { active: 13, total: 14 },
+    prevActiveUsers: 12,
+    flags: []
+  },
+  {
+    id: 'giant-my',
+    name: 'Giant MY',
+    region: 'APAC',
+    serviceLevel: 88.2,
+    prevServiceLevel: 89.5,
+    users: { active: 4, total: 9 },
+    prevActiveUsers: 5,
+    flags: ['Low adoption', 'SL declining']
+  },
+  {
+    id: 'shoprite-za',
+    name: 'Shoprite ZA',
+    region: 'MEA',
+    serviceLevel: 93.4,
+    prevServiceLevel: 92.8,
+    users: { active: 10, total: 11 },
+    prevActiveUsers: 9,
+    flags: []
+  },
+];
+
+// ── RISK SCORING ──────────────────────────────────────────────────────────────
+// healthy:  SL >= 94 AND user% >= 70
+// watch:    SL >= 88 OR user% >= 50  (but not both healthy)
+// atrisk:   SL < 88 OR user% < 40
+
+function userPct(env) {
+  return (env.users.active / env.users.total) * 100;
+}
+
+function getRisk(env) {
+  const sl = env.serviceLevel;
+  const up = userPct(env);
+  if (sl >= 94 && up >= 70) return 'healthy';
+  if (sl < 88 || up < 40)   return 'atrisk';
+  return 'watch';
+}
+
+function slColor(sl) {
+  if (sl >= 94) return 'good';
+  if (sl >= 88) return 'warn';
+  return 'bad';
+}
+
+function delta(curr, prev) {
+  const d = curr - prev;
+  if (Math.abs(d) < 0.1) return { cls: 'flat', arrow: '→', val: '0.0' };
+  return d > 0
+    ? { cls: 'up',   arrow: '↑', val: '+' + d.toFixed(1) }
+    : { cls: 'down', arrow: '↓', val: d.toFixed(1) };
+}
+
+function userDelta(curr, prev) {
+  const d = curr - prev;
+  if (d === 0) return { cls: 'flat', arrow: '→', val: '±0' };
+  return d > 0
+    ? { cls: 'up',   arrow: '↑', val: '+' + d }
+    : { cls: 'down', arrow: '↓', val: String(d) };
+}
+
+function flagClass(f) {
+  if (f.includes('critical') || f.includes('Training')) return 'crit';
+  if (f.includes('adoption') || f.includes('dropped'))  return 'warn';
+  return 'info';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let currentSearch = '';
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function setSearch(v) { currentSearch = v; render(); }
+function setQuarter(q) {
+  document.getElementById('last-run').textContent = 'Snapshot: end of ' + q;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const filtered = ENVIRONMENTS.filter(e => {
+    const matchF = currentFilter === 'all' || getRisk(e) === currentFilter;
+    const matchS = e.name.toLowerCase().includes(currentSearch.toLowerCase())
+                || e.region.toLowerCase().includes(currentSearch.toLowerCase());
+    return matchF && matchS;
+  });
+
+  renderSummary();
+  renderBanner();
+  renderCards(filtered);
+  renderTable(filtered);
+
+  document.getElementById('env-count-label').textContent =
+    filtered.length + ' of ' + ENVIRONMENTS.length + ' environments';
+}
+
+function renderSummary() {
+  const counts = { healthy: 0, watch: 0, atrisk: 0 };
+  ENVIRONMENTS.forEach(e => counts[getRisk(e)]++);
+  document.getElementById('summary-strip').innerHTML = `
+    <div class="strip-card s-total">
+      <div class="strip-num">${ENVIRONMENTS.length}</div>
+      <div class="strip-label">Total Environments</div>
+      <div class="strip-sub">Q1 2026 snapshot</div>
+    </div>
+    <div class="strip-card s-healthy">
+      <div class="strip-num">${counts.healthy}</div>
+      <div class="strip-label">Healthy</div>
+      <div class="strip-sub">SL ≥ 94% · users ≥ 70%</div>
+    </div>
+    <div class="strip-card s-watch">
+      <div class="strip-num">${counts.watch}</div>
+      <div class="strip-label">Watch</div>
+      <div class="strip-sub">Moderate concern</div>
+    </div>
+    <div class="strip-card s-atrisk">
+      <div class="strip-num">${counts.atrisk}</div>
+      <div class="strip-label">At Risk</div>
+      <div class="strip-sub">Needs outreach</div>
+    </div>
+  `;
+}
+
+function renderBanner() {
+  const atRisk = ENVIRONMENTS.filter(e => getRisk(e) === 'atrisk');
+  const banner = document.getElementById('attn-banner');
+  const envs   = document.getElementById('attn-envs');
+  if (atRisk.length === 0) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  envs.innerHTML = atRisk.map(e => `<span class="attn-env-tag">${e.name}</span>`).join('');
+}
+
+function renderCards(list) {
+  const grid = document.getElementById('env-grid');
+  if (list.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-muted);font-size:12px;">No environments match.</div>`;
+    return;
+  }
+
+  // sort: atrisk first, then watch, then healthy
+  const order = { atrisk: 0, watch: 1, healthy: 2 };
+  list = [...list].sort((a, b) => order[getRisk(a)] - order[getRisk(b)]);
+
+  grid.innerHTML = list.map((e, i) => {
+    const risk = getRisk(e);
+    const up   = userPct(e);
+    const sl_d = delta(e.serviceLevel, e.prevServiceLevel);
+    const u_d  = userDelta(e.users.active, e.prevActiveUsers);
+    const fillCls = up >= 70 ? 'fill-good' : up >= 40 ? 'fill-warn' : 'fill-bad';
+    const slCls   = slColor(e.serviceLevel);
+
+    return `
+      <div class="env-card risk-${risk}" style="animation-delay:${Math.min(i*0.05,0.4)}s">
+        <div class="card-top">
+          <div class="card-env-name">${e.name}</div>
+          <span class="risk-badge ${risk}">
+            <span class="bdot"></span>
+            ${risk === 'healthy' ? 'Healthy' : risk === 'watch' ? 'Watch' : 'At Risk'}
+          </span>
+        </div>
+        <div class="card-region">${e.region}</div>
+
+        <div class="card-kpis">
+          <div class="kpi-cell">
+            <div class="kpi-label">Service Level</div>
+            <div class="kpi-val ${slCls}">${e.serviceLevel.toFixed(1)}<span style="font-size:12px;font-weight:400">%</span></div>
+            <div class="kpi-delta ${sl_d.cls}">${sl_d.arrow} ${sl_d.val}% vs Q4</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-label">Active Users</div>
+            <div class="kpi-val neutral">${e.users.active}<span style="font-size:12px;font-weight:400;color:var(--text-muted)"> / ${e.users.total}</span></div>
+            <div class="kpi-delta ${u_d.cls}">${u_d.arrow} ${u_d.val} vs Q4</div>
+          </div>
+        </div>
+
+        <div class="card-users">
+          <div class="user-header">
+            <span class="user-label">User Adoption</span>
+            <span class="user-count">${Math.round(up)}% of licensed seats active</span>
+          </div>
+          <div class="user-bar-track">
+            <div class="user-bar-fill ${fillCls}" style="width:${up}%"></div>
+          </div>
+          <div class="user-detail">
+            <span>${e.users.active} active this quarter</span>
+            <span>${e.users.total - e.users.active} inactive</span>
+          </div>
+        </div>
+
+        ${e.flags.length ? `
+        <div class="card-flags">
+          ${e.flags.map(f => `<span class="flag-chip ${flagClass(f)}">${f}</span>`).join('')}
+        </div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderTable(list) {
+  const order = { atrisk: 0, watch: 1, healthy: 2 };
+  list = [...list].sort((a, b) => order[getRisk(a)] - order[getRisk(b)]);
+
+  const dotColor = { healthy: 'green', watch: 'yellow', atrisk: 'red' };
+
+  document.getElementById('qoq-tbody').innerHTML = list.map(e => {
+    const risk  = getRisk(e);
+    const sl_d  = delta(e.serviceLevel, e.prevServiceLevel);
+    const u_d   = userDelta(e.users.active, e.prevActiveUsers);
+    const up    = userPct(e);
+    const fillCls = up >= 70 ? 'fill-good' : up >= 40 ? 'fill-warn' : 'fill-bad';
+    const dc    = dotColor[risk];
+
+    return `
+      <tr>
+        <td class="env-name-cell">${e.name}</td>
+        <td>${e.region}</td>
+        <td class="num">
+          <span class="tbl-val" style="color:var(--${slColor(e.serviceLevel) === 'good' ? 'green' : slColor(e.serviceLevel) === 'warn' ? 'yellow' : 'red'})">${e.serviceLevel.toFixed(1)}%</span>
+        </td>
+        <td class="num">
+          <span style="color:var(--text-muted);font-size:10px">${e.prevServiceLevel.toFixed(1)}%</span>
+          <span class="tbl-delta ${sl_d.cls}">${sl_d.arrow} ${sl_d.val}%</span>
+        </td>
+        <td class="num">
+          <div class="tbl-user-mini" style="justify-content:flex-end">
+            <span>${e.users.active} / ${e.users.total}</span>
+            <div class="mini-bar">
+              <div class="mini-fill ${fillCls}" style="width:${up}%"></div>
+            </div>
+          </div>
+        </td>
+        <td class="num">
+          <span class="tbl-delta ${u_d.cls}">${u_d.arrow} ${u_d.val} users</span>
+        </td>
+        <td>
+          <span class="tbl-risk">
+            <span class="tbl-dot ${dc}"></span>
+            ${risk === 'healthy' ? 'Healthy' : risk === 'watch' ? 'Watch' : 'At Risk'}
+          </span>
+        </td>
+        <td>
+          ${e.flags.map(f => `<span class="flag-chip ${flagClass(f)}" style="margin-right:3px">${f}</span>`).join('')}
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('last-run').textContent =
+  'Snapshot: end of Q1 2026';
+render();
+</script>
+</body>
+</html>
